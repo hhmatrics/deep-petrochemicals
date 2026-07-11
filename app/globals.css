@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/*
+  Deep Petrochemicals — brand design system (Tailwind v4 CSS-first config).
+
+  Palette derived directly from the logo:
+    • brand  = orange   → primary identity + CTAs (wordmark is orange ~#E0632A;
+               sun/turbine run a warm orange→red-orange gradient)
+    • leaf   = green    → secondary, sustainability / HSE / success
+               (leaves + "LIMITED", bright #7CB342 down to forest #3E7B2E)
+    • ink    = neutral  → credible industrial base: text, dark header/footer,
+               large surfaces (keeps the brand professional, not flashy)
+
+  Usage: bg-brand-600, text-brand-500, bg-leaf-600, text-ink-900, etc.
+*/
+@theme {
+  /* ---- Brand orange (primary / CTA) ---- */
+  --color-brand-50: #fdf4ee;
+  --color-brand-100: #fbe4d4;
+  --color-brand-200: #f6c5a7;
+  --color-brand-300: #ef9f70;
+  --color-brand-400: #e87c45;
+  --color-brand-500: #e0632a; /* wordmark orange */
+  --color-brand-600: #c94e1f; /* sun red-orange — default button */
+  --color-brand-700: #a63d1b;
+  --color-brand-800: #86321b;
+  --color-brand-900: #6d2c19;
+  --color-brand-950: #3a1409;
+
+  /* ---- Leaf green (secondary / sustainability) ---- */
+  --color-leaf-50: #f4f9ec;
+  --color-leaf-100: #e6f2d2;
+  --color-leaf-200: #cfe6ab;
+  --color-leaf-300: #b1d67a;
+  --color-leaf-400: #94c552;
+  --color-leaf-500: #7cb342; /* bright leaf */
+  --color-leaf-600: #5f9130; /* olive "LIMITED" */
+  --color-leaf-700: #497026;
+  --color-leaf-800: #3c5a23; /* forest leaf */
+  --color-leaf-900: #334c20;
+  --color-leaf-950: #18280c;
+
+  /* ---- Ink neutral (warm-tinted slate) ---- */
+  --color-ink-50: #f8f8f7;
+  --color-ink-100: #f0efec;
+  --color-ink-200: #e0ddd7;
+  --color-ink-300: #c7c2b8;
+  --color-ink-400: #9d968a;
+  --color-ink-500: #79726a;
+  --color-ink-600: #5f5952;
+  --color-ink-700: #4a4640;
+  --color-ink-800: #302d29;
+  --color-ink-900: #1c1a18;
+  --color-ink-950: #100f0d;
+
+  /* Warm cream surface (page background) + pure white for cards/contrast */
+  --color-cream: #faf6ee;
+  --color-cream-100: #f4eee1;
+  --color-paper: #ffffff;
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-sora), var(--font-inter), system-ui, sans-serif;
+
+  /* Fluid display sizes for hero / section headings */
+  --text-display: clamp(2.5rem, 1.6rem + 3.6vw, 4.25rem);
+  --text-display--line-height: 1.05;
+  --text-hero: clamp(2rem, 1.3rem + 2.6vw, 3.25rem);
+  --text-hero--line-height: 1.1;
+}
+
+:root {
+  --background: var(--color-cream);
+  --foreground: var(--color-ink-900);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.6;
+}
+
+/* Display font + tighter tracking for headings by default.
+   NOTE: no explicit color — headings inherit, so dark sections (hero, CTA,
+   stats band) render light text via their `text-white` context. */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* Consistent accessible focus ring on interactive elements */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* Reusable brand primitives (kept minimal; components use utilities otherwise) */
+@layer components {
+  .container-page {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 80rem; /* 1280px */
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 1024px) {
+    .container-page { padding-inline: 2rem; }
+  }
+}
