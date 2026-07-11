@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { EnquiryPayload } from "@/lib/enquiry";
-import { COMPANY, EMAILS, isKnown } from "@/data/company";
 
 export const runtime = "nodejs";
 
@@ -8,23 +7,6 @@ const REQUIRED: (keyof EnquiryPayload)[] = ["name", "email"];
 
 function isEmail(v: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-}
-
-async function verifyRecaptcha(token?: string): Promise<boolean> {
-  const secret = process.env.RECAPTCHA_SECRET;
-  if (!secret) return true; // reCAPTCHA not configured → skip
-  if (!token) return false;
-  try {
-    const res = await fetch("https://www.google.com/recaptcha/api/siteverify", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}`,
-    });
-    const data = (await res.json()) as { success: boolean; score?: number };
-    return data.success && (data.score === undefined || data.score >= 0.5);
-  } catch {
-    return false;
-  }
 }
 
 export async function POST(request: Request) {
@@ -50,16 +32,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Please enter a valid email." }, { status: 400 });
   }
 
-  // Optional reCAPTCHA
-  if (!(await verifyRecaptcha(body.recaptchaToken))) {
-    return NextResponse.json({ ok: false, error: "Spam check failed. Please try again." }, { status: 400 });
-  }
-
-  const subject =
-    body.type === "quote"
-      ? `Quote request — ${body.product || "general"} — ${body.company || body.name}`
-      : `Website enquiry — ${body.company || body.name}`;
-
   const lines = [
     `Type: ${body.type}`,
     `Name: ${body.name}`,
@@ -73,33 +45,42 @@ export async function POST(request: Request) {
     body.message ? `Message: ${body.message}` : "",
   ].filter(Boolean);
 
-  // Delivery via Web3Forms when configured (keeps the access key server-side).
-  const accessKey = process.env.WEB3FORMS_ACCESS_KEY;
-  const toEmail =
-    process.env.ENQUIRY_TO_EMAIL || (isKnown(EMAILS.sales) ? EMAILS.sales : undefined);
+  // Delivery: Google Sheets via an Apps Script web app that appends a row
+  // (see scripts/google-sheets-webhook.gs + GOOGLE_SHEETS_SETUP.md).
+  const sheetsUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
 
-  if (accessKey) {
-    try {
-      const res = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          access_key: accessKey,
-          subject,
-          from_name: `${COMPANY.shortName} website`,
-          replyto: body.email,
-          ...(toEmail ? { to: toEmail } : {}),
-          message: lines.join("\n"),
-        }),
-      });
-      if (res.ok) return NextResponse.json({ ok: true, delivered: true });
-      return NextResponse.json({ ok: false, error: "Delivery failed. Please email us directly." }, { status: 502 });
-    } catch {
-      return NextResponse.json({ ok: false, error: "Delivery failed. Please email us directly." }, { status: 502 });
-    }
+  // Not configured yet — capture in server logs, report honestly.
+  if (!sheetsUrl) {
+    console.info("[enquiry] (no delivery configured)\n" + lines.join("\n"));
+    return NextResponse.json({ ok: true, delivered: false });
   }
 
-  // No delivery service configured yet — capture in server logs, report honestly.
-  console.info("[enquiry] (no delivery configured)\n" + lines.join("\n"));
-  return NextResponse.json({ ok: true, delivered: false });
+  try {
+    const res = await fetch(sheetsUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        submittedAt: new Date().toISOString(),
+        type: body.type,
+        name: body.name,
+        company: body.company ?? "",
+        email: body.email,
+        phone: body.phone ?? "",
+        product: body.product ?? "",
+        grade: body.grade ?? "",
+        quantity: body.quantity ?? "",
+        region: body.region ?? "",
+        message: body.message ?? "",
+      }),
+    });
+    if (res.ok) return NextResponse.json({ ok: true, delivered: true });
+  } catch {
+    // fall through to the error below.
+  }
+
+  console.error("[enquiry] Google Sheets delivery failed\n" + lines.join("\n"));
+  return NextResponse.json(
+    { ok: false, error: "Delivery failed. Please try again or contact us directly." },
+    { status: 502 },
+  );
 }

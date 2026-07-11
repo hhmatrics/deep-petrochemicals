@@ -55,7 +55,9 @@ export const COMPANY = {
 
   // ---- Contact ------------------------------------------------------------
   phone: TBD as Maybe<string>, // [TBD] +91-XXXXXXXXXX
-  whatsapp: TBD as Maybe<string>, // [TBD] digits only, intl format e.g. 91XXXXXXXXXX
+  // Set here OR via NEXT_PUBLIC_WHATSAPP_NUMBER in .env.local (env wins).
+  // Digits only, intl format e.g. 919825012345 (country code + number, no +/spaces).
+  whatsapp: (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || TBD) as Maybe<string>,
   emailDomain: TBD as Maybe<string>, // [TBD] e.g. "deeppetrochemicals.com"
   // Real canonical origin — only emitted in JSON-LD when NEXT_PUBLIC_SITE_URL is set.
   siteUrl: (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "") as string,

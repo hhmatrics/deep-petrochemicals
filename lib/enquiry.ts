@@ -13,7 +13,6 @@ export interface EnquiryPayload {
   message?: string;
   /** Honeypot — must stay empty. */
   company_website?: string;
-  recaptchaToken?: string;
 }
 
 export interface EnquiryResult {

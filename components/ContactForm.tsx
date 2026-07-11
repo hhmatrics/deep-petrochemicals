@@ -2,45 +2,105 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { PRODUCTS } from "@/data/products";
+import { PRODUCTS, getProduct } from "@/data/products";
 import { submitEnquiry } from "@/lib/enquiry";
-import { useRecaptcha } from "@/components/useRecaptcha";
+import { buildWhatsappUrl, whatsappNumber } from "@/lib/whatsapp";
+import { IconWhatsapp } from "@/components/icons";
 
 const fieldCls =
   "w-full rounded-lg border border-ink-300 bg-paper px-4 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 disabled:opacity-60";
 const labelCls = "block text-sm font-medium text-ink-800";
 
-type Status = "idle" | "submitting" | "sent" | "captured" | "error";
+// When COMPANY.whatsapp is set the form hands off to WhatsApp; else email capture.
+const WA_NUMBER = whatsappNumber();
+
+type Status = "idle" | "submitting" | "sent" | "captured" | "handoff" | "error";
 
 export function ContactForm({ defaultProduct = "" }: { defaultProduct?: string }) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
-  const { getToken } = useRecaptcha();
+  const [waUrl, setWaUrl] = useState("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("submitting");
     setError("");
     const fd = new FormData(e.currentTarget);
-    const recaptchaToken = await getToken("contact");
 
-    const result = await submitEnquiry({
-      type: "contact",
+    const productSlug = String(fd.get("product") || "");
+    const productName = productSlug
+      ? getProduct(productSlug)?.name.split(" (")[0] ?? productSlug
+      : "";
+    const payload = {
+      type: "contact" as const,
       name: String(fd.get("name") || ""),
       company: String(fd.get("company") || ""),
       email: String(fd.get("email") || ""),
-      product: String(fd.get("product") || ""),
+      product: productSlug,
       message: String(fd.get("message") || ""),
       company_website: String(fd.get("company_website") || ""),
-      recaptchaToken,
-    });
+    };
 
+    // Honeypot — silently accept.
+    if (payload.company_website) {
+      setStatus("captured");
+      return;
+    }
+
+    // WhatsApp hand-off (open synchronously, before any await, to keep the gesture).
+    if (WA_NUMBER) {
+      const url = buildWhatsappUrl(
+        WA_NUMBER,
+        "*New Enquiry — Deep Petrochemicals Ltd*",
+        [
+          { label: "Name", value: payload.name },
+          { label: "Company", value: payload.company },
+          { label: "Email", value: payload.email },
+          { label: "Product interest", value: productName },
+          { label: "Message", value: payload.message },
+        ],
+      );
+      setWaUrl(url);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setStatus("handoff");
+      void submitEnquiry(payload); // best-effort capture too
+      return;
+    }
+
+    // Fallback: email / API submission.
+    setStatus("submitting");
+    const result = await submitEnquiry(payload);
     if (result.ok) {
       setStatus(result.delivered ? "sent" : "captured");
     } else {
       setError(result.error || "Something went wrong.");
       setStatus("error");
     }
+  }
+
+  if (status === "handoff") {
+    return (
+      <div
+        role="status"
+        className="rounded-xl border border-leaf-200 bg-leaf-50 p-6 text-center"
+      >
+        <p className="font-display text-lg font-bold text-leaf-800">
+          Opening WhatsApp…
+        </p>
+        <p className="mt-2 text-sm text-leaf-900/80">
+          We’ve prefilled your enquiry. Just press send in WhatsApp and our team
+          will respond within 48 hours.
+        </p>
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 font-semibold text-white transition hover:brightness-95"
+        >
+          <IconWhatsapp />
+          Open WhatsApp
+        </a>
+      </div>
+    );
   }
 
   if (status === "sent" || status === "captured") {
@@ -120,11 +180,24 @@ export function ContactForm({ defaultProduct = "" }: { defaultProduct?: string }
       <button
         type="submit"
         disabled={submitting}
-        className="w-full rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-70 sm:w-auto"
+        className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-white transition-colors disabled:opacity-70 sm:w-auto ${
+          WA_NUMBER ? "bg-[#25D366] hover:brightness-95" : "bg-brand-600 hover:bg-brand-700"
+        }`}
       >
-        {submitting ? "Sending…" : "Send enquiry"}
+        {WA_NUMBER ? (
+          <>
+            <IconWhatsapp />
+            {submitting ? "Opening…" : "Send enquiry on WhatsApp"}
+          </>
+        ) : (
+          submitting ? "Sending…" : "Send enquiry"
+        )}
       </button>
-      <p className="text-xs text-ink-500">We respond to enquiries within 48 hours.</p>
+      <p className="text-xs text-ink-500">
+        {WA_NUMBER
+          ? "Sends your details straight to our team on WhatsApp."
+          : "We respond to enquiries within 48 hours."}
+      </p>
     </form>
   );
 }
