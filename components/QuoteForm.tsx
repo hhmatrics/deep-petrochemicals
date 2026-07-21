@@ -4,24 +4,17 @@ import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { PRODUCTS, getProduct } from "@/data/products";
 import { submitEnquiry } from "@/lib/enquiry";
-import { buildWhatsappUrl, whatsappNumber } from "@/lib/whatsapp";
-import { IconWhatsapp } from "@/components/icons";
 
 const fieldCls =
   "w-full rounded-lg border border-ink-300 bg-paper px-4 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 disabled:opacity-60";
 const labelCls = "block text-sm font-medium text-ink-800";
 
-// Set once at build time from COMPANY.whatsapp — when present, the form hands off
-// to WhatsApp with every filled field; otherwise it falls back to email capture.
-const WA_NUMBER = whatsappNumber();
-
-type Status = "idle" | "submitting" | "sent" | "captured" | "handoff" | "error";
+type Status = "idle" | "submitting" | "sent" | "captured" | "error";
 
 export function QuoteForm({ defaultProduct = "" }: { defaultProduct?: string }) {
   const [product, setProduct] = useState(defaultProduct);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
-  const [waUrl, setWaUrl] = useState("");
 
   const grades = useMemo(() => getProduct(product)?.grades ?? [], [product]);
 
@@ -31,9 +24,6 @@ export function QuoteForm({ defaultProduct = "" }: { defaultProduct?: string }) 
     const fd = new FormData(e.currentTarget);
 
     const productSlug = String(fd.get("product") || "");
-    const productName = productSlug
-      ? getProduct(productSlug)?.name.split(" (")[0] ?? productSlug
-      : "";
     const quantity = [fd.get("quantity"), fd.get("unit")].filter(Boolean).join(" ");
     const payload = {
       type: "quote" as const,
@@ -55,33 +45,6 @@ export function QuoteForm({ defaultProduct = "" }: { defaultProduct?: string }) 
       return;
     }
 
-    // WhatsApp hand-off: build the message and open the chat synchronously
-    // (before any await) so the browser keeps the user-gesture and doesn't block it.
-    if (WA_NUMBER) {
-      const url = buildWhatsappUrl(
-        WA_NUMBER,
-        "*New Quote Request — Deep Petrochemicals Ltd*",
-        [
-          { label: "Name", value: payload.name },
-          { label: "Company", value: payload.company },
-          { label: "Email", value: payload.email },
-          { label: "Phone", value: payload.phone },
-          { label: "Product", value: productName },
-          { label: "Grade", value: payload.grade },
-          { label: "Quantity", value: payload.quantity },
-          { label: "Destination", value: payload.region },
-          { label: "Requirements", value: payload.message },
-        ],
-      );
-      setWaUrl(url);
-      window.open(url, "_blank", "noopener,noreferrer");
-      setStatus("handoff");
-      // Best-effort capture too, so the lead is recorded even if they don't press send.
-      void submitEnquiry(payload);
-      return;
-    }
-
-    // Fallback: email / API submission.
     setStatus("submitting");
     const result = await submitEnquiry(payload);
     if (result.ok) setStatus(result.delivered ? "sent" : "captured");
@@ -89,29 +52,6 @@ export function QuoteForm({ defaultProduct = "" }: { defaultProduct?: string }) 
       setError(result.error || "Something went wrong.");
       setStatus("error");
     }
-  }
-
-  if (status === "handoff") {
-    return (
-      <div role="status" className="rounded-xl border border-leaf-200 bg-leaf-50 p-6 text-center">
-        <p className="font-display text-lg font-bold text-leaf-800">
-          Opening WhatsApp…
-        </p>
-        <p className="mt-2 text-sm text-leaf-900/80">
-          We’ve prefilled your quote request. Just press send in WhatsApp and our
-          team will get back to you within 48 hours.
-        </p>
-        <a
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 font-semibold text-white transition hover:brightness-95"
-        >
-          <IconWhatsapp />
-          Open WhatsApp
-        </a>
-      </div>
-    );
   }
 
   if (status === "sent" || status === "captured") {
@@ -245,24 +185,13 @@ export function QuoteForm({ defaultProduct = "" }: { defaultProduct?: string }) 
       <button
         type="submit"
         disabled={submitting}
-        className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-white transition-colors disabled:opacity-70 ${
-          WA_NUMBER ? "bg-[#25D366] hover:brightness-95" : "bg-brand-600 hover:bg-brand-700"
-        }`}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-70"
       >
-        {WA_NUMBER ? (
-          <>
-            <IconWhatsapp />
-            {submitting ? "Opening…" : "Request quote on WhatsApp"}
-          </>
-        ) : (
-          submitting ? "Submitting…" : "Request quote"
-        )}
+        {submitting ? "Submitting…" : "Request quote"}
       </button>
       <p className="text-xs text-ink-500">
-        {WA_NUMBER
-          ? "Sends your details straight to our team on WhatsApp. "
-          : "We respond to quote requests within 48 hours. "}
-        Fields marked <span className="text-brand-600">*</span> are required.
+        We respond to quote requests within 48 hours. Fields marked{" "}
+        <span className="text-brand-600">*</span> are required.
       </p>
     </form>
   );

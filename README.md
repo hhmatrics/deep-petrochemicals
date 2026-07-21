@@ -48,18 +48,14 @@ to `.env.local` (git-ignored) and fill in what you need.
 | Variable | Purpose |
 |---|---|
 | `NEXT_PUBLIC_SITE_URL` | Canonical origin for sitemap, robots, canonical tags and OG URLs. Set to the real domain. |
-| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Digits-only intl format (e.g. `918238441536`). When set, the contact + quote forms hand off to WhatsApp pre-filled with the enquiry, and the floating WhatsApp button appears. |
 | `GOOGLE_SHEETS_WEBHOOK_URL` | Apps Script Web-app URL that logs each enquiry to a Google Sheet. See [`GOOGLE_SHEETS_SETUP.md`](./GOOGLE_SHEETS_SETUP.md). |
 
 ## How enquiries work
 
 The contact and quote forms POST to `app/api/enquiry/route.ts`, which validates input and
-drops honeypot spam. Two independent, free channels:
-
-1. **WhatsApp hand-off** *(instant, customer-facing)* — on submit the browser opens a
-   WhatsApp chat to `NEXT_PUBLIC_WHATSAPP_NUMBER` with every filled field pre-formatted.
-2. **Google Sheets** *(permanent lead log)* — each enquiry appends a row to your Sheet via
-   a Google Apps Script web app (with optional email notification). Setup takes ~5 minutes.
+drops honeypot spam, then delivers via **Google Sheets** *(permanent lead log)* — each
+enquiry appends a row to your Sheet via a Google Apps Script web app (with optional email
+notification). Setup takes ~5 minutes: see [`GOOGLE_SHEETS_SETUP.md`](./GOOGLE_SHEETS_SETUP.md).
 
 If no channel is configured, submissions are validated and logged server-side (the API
 honestly reports `delivered: false`).
@@ -82,10 +78,10 @@ honestly reports `delivered: false`).
 ```
 app/            App Router pages (home, products, about, operations, sustainability,
                 contact, request-a-quote, blog, downloads, quality, legal, careers)
-  api/enquiry/  Enquiry Route Handler (WhatsApp payload + Google Sheets delivery)
+  api/enquiry/  Enquiry Route Handler (validation + Google Sheets delivery)
 components/     Header, Footer, forms, home sections, shared UI + icons
 data/           Single source of truth (see above)
-lib/            seo.ts (JSON-LD), enquiry.ts, whatsapp.ts
+lib/            seo.ts (JSON-LD), enquiry.ts
 public/         Logo, emblem, OG image, (TDS PDFs)
 scripts/        google-sheets-webhook.gs (paste into Google Apps Script)
 ```

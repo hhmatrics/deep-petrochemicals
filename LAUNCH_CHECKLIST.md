@@ -39,8 +39,7 @@ items — the app reads them at build/runtime.
     (optional email notification per submission too). Follow `GOOGLE_SHEETS_SETUP.md`,
     then set `GOOGLE_SHEETS_WEBHOOK_URL`.
   - Until it's set, submissions are accepted + logged but **not persisted** (the API
-    reports `delivered:false` honestly). *(WhatsApp hand-off works independently — set
-    `NEXT_PUBLIC_WHATSAPP_NUMBER` for that.)*
+    reports `delivered:false` honestly).
 - [ ] **SSL / HTTPS** — ensure the host serves the site over HTTPS with a valid cert.
 
 ## 2. Owner facts still needed (replace placeholders in `data/company.ts`)
@@ -51,7 +50,7 @@ until filled:
 - [ ] Plant capacity (MTPA)
 - [ ] Year founded
 - [ ] Regions / countries served
-- [ ] Phone number (enables click-to-call + WhatsApp button)
+- [ ] Phone number (enables click-to-call)
 - [ ] Email domain (enables sales@ / procurement@ / corpcomm@ addresses)
 - [ ] Saykha GIDC PIN code
 - [ ] Which ISO certifications are actually **held** vs. **in progress**
@@ -74,7 +73,7 @@ until filled:
 ## 5. Nice-to-have
 
 - [ ] Run a Lighthouse pass against the production URL (local build is already fast/SSG).
-- [ ] Confirm OG card render via a social debugger (LinkedIn/WhatsApp preview) once live.
+- [ ] Confirm OG card render via a social debugger (LinkedIn preview) once live.
 - [ ] Legal review of `/privacy-policy` and `/terms-of-sale` (currently review-pending templates).
 
 ---

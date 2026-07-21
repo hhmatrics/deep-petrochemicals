@@ -53,9 +53,6 @@ Sheet. The first submission auto-creates the header row.
   Sheet within a second or two.
 - **Want email notifications too?** Set `NOTIFY_EMAIL` in the Apps Script (Step 2.4)
   — you'll get an email on every enquiry *in addition to* the Sheet row.
-- **WhatsApp is separate/instant.** When the WhatsApp number is set, the forms hand
-  off to WhatsApp for the customer; the Sheet still records the lead in the
-  background as your permanent log.
 - **Changing the script later:** after editing the `.gs` file you must
   **Deploy → Manage deployments → edit → Version: New version** for changes to
   take effect (the `/exec` URL stays the same).

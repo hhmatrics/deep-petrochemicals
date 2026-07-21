@@ -4,7 +4,6 @@ import "./globals.css";
 import { COMPANY, SITE_URL } from "@/data/company";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { CookieConsent } from "@/components/CookieConsent";
 
 const inter = Inter({
@@ -69,7 +68,6 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
-        <WhatsAppButton />
         <CookieConsent />
       </body>
     </html>
